@@ -39,6 +39,7 @@
   var TABLES = ['messages', 'tasks', 'ledger_entries', 'parenting_status', 'memos', 'agents'];
   var TASK_COLUMNS = ['대기', '진행중', '완료'];
   var STATUS_ALIAS = { todo: '대기', doing: '진행중', done: '완료', '대기중': '대기', '진행': '진행중', '작업중': '진행중' };
+  var AGENT_STATUS_ALIAS = { online: '작업중', offline: '대기', active: '작업중', idle: '대기', busy: '작업중', '대기중': '대기' };
 
   /* ── 유틸 ─────────────────────────────────────────────── */
   function $(sel, root) { return (root || document).querySelector(sel); }
@@ -373,6 +374,10 @@
       var o = Object.assign({}, r);
       if (o.id != null) o.id = String(o.id);
       if (table === 'tasks' && STATUS_ALIAS[o.status]) o.status = STATUS_ALIAS[o.status];
+      if (table === 'agents') {
+        if (AGENT_STATUS_ALIAS[o.status]) o.status = AGENT_STATUS_ALIAS[o.status];
+        if (o.status !== '작업중') o.status = o.status || '대기';
+      }
       return o;
     });
   }
@@ -413,28 +418,8 @@
         toast('Supabase 테이블을 읽지 못했어요. schema.sql 실행 여부를 확인해 주세요.');
       }
     }
-    await ensureAgents();
     renderAll();
     setConnPill();
-  }
-
-  async function ensureAgents() {
-    if (!db.online || state.agentsEnsured) return;
-    state.agentsEnsured = true;
-    var list = rows('agents');
-    var need = [
-      { id: 'buja', name: CFG.agents.owner, role: CFG.family.owner + ' 님 전담 비서' },
-      { id: 'partner', name: CFG.agents.partner, role: CFG.family.partner + ' 님 전담 비서' }
-    ];
-    for (var i = 0; i < need.length; i++) {
-      var n = need[i];
-      if (!list.some(function (a) { return a.id === n.id || a.name === n.name; })) {
-        try {
-          await db.insert('agents', { id: n.id, name: n.name, role: n.role, status: '대기', current_task: '' });
-        } catch (e) { console.warn('[비서실] 비서 행 생성 실패', e); }
-      }
-    }
-    try { state.data.agents = await db.list('agents'); } catch (e) {}
   }
 
   async function reload(table) {
@@ -483,7 +468,10 @@
 
   /* ── 오피스 맵 ─────────────────────────────────────────── */
   function agentOf(name) {
-    return rows('agents').filter(function (a) { return a.name === name; })[0] || null;
+    var list = rows('agents'), id = agentIdFor(name);
+    var byId = list.filter(function (a) { return a.id === id; })[0];
+    if (byId) return byId;
+    return list.filter(function (a) { return a.name === name; })[0] || null;
   }
   function avatarHtml(name) {
     var mint = name === CFG.agents.partner;
@@ -693,15 +681,11 @@
 
   /* ── 비서현황 ─────────────────────────────────────────── */
   function renderAgents() {
-    var list = rows('agents').slice();
     var names = [CFG.agents.owner, CFG.agents.partner];
-    names.forEach(function (n) {
-      if (!list.some(function (a) { return a.name === n; })) {
-        list.push({ id: agentIdFor(n), name: n, role: '', status: '대기', current_task: '', updated_at: nowIso() });
-      }
-    });
     $('#agentGrid').innerHTML = names.map(function (n) {
-      var a = list.filter(function (x) { return x.name === n; })[0];
+      var a = agentOf(n) || {
+        id: agentIdFor(n), name: n, role: '', status: '대기', current_task: '', updated_at: nowIso()
+      };
       return agentCardHtml(a, true);
     }).join('');
   }
@@ -1051,12 +1035,6 @@
     await loadAll();
 
     TABLES.forEach(function (t) { db.watch(t, function () { reload(t); }); });
-
-    // 접속 흔적 (비서현황 최근 활동)
-    if (db.online) {
-      var me = agentOf(myName() === CFG.family.owner ? CFG.agents.owner : CFG.agents.partner);
-      if (me) db.update('agents', me.id, { updated_at: nowIso() }).catch(function () {});
-    }
   }
 
   function init() {

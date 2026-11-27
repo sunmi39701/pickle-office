@@ -41,7 +41,7 @@ supabase: {
 
 ## PIN 잠금
 
-- 첫 화면은 4자리 PIN 잠금입니다. **기본값 `3970`**.
+- 첫 화면은 4자리 PIN 잠금입니다. 기본 PIN은 가족에게만 따로 전달합니다(공개 저장소·README에는 적지 않음).
 - PIN은 `sha256(PIN + ':' + salt)` 해시로만 저장하며, 화면·코드에 평문으로 두지 않습니다.
 - 바꾸는 방법
   1. 앱 오른쪽 위 **⚙ 설정 → 4자리 비밀번호 변경** (이 브라우저에 저장)
@@ -70,8 +70,18 @@ styles.css      크림/우드 톤 반응형 스타일
 app.js          잠금, 렌더링, Supabase 실시간 연동, 데모 모드
 config.js       비서실 이름 · 호칭 · PIN 해시 · Supabase 키
 schema.sql      Supabase 테이블 · RLS · 실시간 · 예시 데이터
-assets/office-map.png   클레이 3D 오피스 맵
+assets/office-map.png   클레이 3D 오피스 맵 (원본)
+assets/office-map.webp  같은 이미지의 가벼운 버전 (86KB, 실제 표시용)
 ```
+
+## 문제 해결
+
+| 증상 | 원인 · 해결 |
+|---|---|
+| 상단에 **연결 오류**, `permission denied for table …` | SQL로 테이블만 만들면 anon 권한이 없습니다. `schema.sql` 의 `권한(GRANT)` 부분을 실행하세요. |
+| 저장은 되는데 상대 화면에 바로 안 보임 | `schema.sql` 의 Realtime 발행(`alter publication supabase_realtime add table …`)을 실행하세요. |
+| 비밀번호가 계속 틀리다고 나옴 | `config.js` 의 `pin.hash` 가 `sha256(PIN + ':' + salt)` 인지 확인하세요. |
+| 화면이 예시 데이터로 보임 | Supabase 키가 비었거나 테이블을 못 읽은 상태입니다. ⚙ 설정에서 URL·키를 확인하세요. |
 
 ## 로컬에서 미리 보기
 
