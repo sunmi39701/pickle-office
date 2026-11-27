@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#FDF6EA" />
 <title>우리가족 비서실</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='24' cy='18' r='9' fill='%23A98BF3'/%3E%3Ccircle cx='40' cy='18' r='9' fill='%23A98BF3'/%3E%3Ccircle cx='32' cy='36' r='20' fill='%237CC3E8'/%3E%3Ccircle cx='25' cy='33' r='2.6' fill='%234A3A2E'/%3E%3Ccircle cx='39' cy='33' r='2.6' fill='%234A3A2E'/%3E%3Cpath d='M27 42q5 4 10 0' stroke='%234A3A2E' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="./assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
@@ -77,6 +79,8 @@
     <button class="tab" type="button" data-tab="tasks"><span class="tab-ico">🗂️</span>작업실<span class="tab-badge" id="badgeTasks" hidden></span></button>
     <button class="tab" type="button" data-tab="ledger"><span class="tab-ico">💰</span>가계부</button>
     <button class="tab" type="button" data-tab="parenting"><span class="tab-ico">🍼</span>육아현황</button>
+    <button class="tab" type="button" data-tab="recipes"><span class="tab-ico">🥣</span>이유식 레시피북</button>
+    <button class="tab" type="button" data-tab="diary"><span class="tab-ico">📖</span>육아일기</button>
     <button class="tab" type="button" data-tab="memos"><span class="tab-ico">📝</span>공동 메모</button>
     <button class="tab" type="button" data-tab="agents"><span class="tab-ico">🤖</span>비서현황</button>
   </nav>
@@ -199,7 +203,7 @@
         <h2 class="form-title">🍼 육아현황 <small>오늘의 돌봄·이유식·일정</small></h2>
         <div class="form-row">
           <select id="parentingSubject" class="mini-select">
-            <option>튼튼이</option><option>쿵이</option><option>쾅이</option><option>가족</option>
+            <option>다연</option><option>시준</option><option>시호</option><option>가족</option>
           </select>
           <select id="parentingCategory" class="mini-select">
             <option>이유식</option><option>수유</option><option>수면</option>
@@ -210,10 +214,92 @@
           <button class="primary-btn" type="submit">기록</button>
         </div>
         <input id="parentingDetail" type="text" class="wide-input" placeholder="자세히 (선택)" maxlength="160" />
-        <p class="hint">아이 이름 대신 태명(튼튼이·쿵이·쾅이)만 사용합니다.</p>
+        <p class="hint">주소·연락처·생년월일 같은 개인정보는 적지 않아요.</p>
       </form>
 
       <div class="kid-grid" id="kidGrid"></div>
+    </section>
+
+    <!-- 이유식 레시피북 -->
+    <section class="view" id="view-recipes">
+      <form class="card add-form" id="recipeForm">
+        <h2 class="form-title">🥣 이유식 레시피북 <small>칸막이 밥솥 1회 = 두 끼</small></h2>
+        <div class="form-row">
+          <input id="recipeDay" type="number" min="0" max="3000" placeholder="생후 일수 (예: 232)" />
+          <input id="recipeDate" type="date" class="mini-select" aria-label="레시피 날짜" />
+          <input id="recipeTitle" type="text" placeholder="메뉴명 (예: 한우 가지 배 오트밀죽)" maxlength="80" required />
+          <select id="recipeMain" class="mini-select" aria-label="주재료">
+            <option>소고기</option><option>닭고기</option><option>생선</option><option>특식</option>
+          </select>
+          <button class="primary-btn" type="submit">추가</button>
+        </div>
+        <div class="form-grid">
+          <input id="recipePortion" type="text" placeholder="분량 (예: 1인 130g · 칸 260g · 물 160ml)" maxlength="120" />
+          <input id="recipeReaction" type="text" placeholder="아이들 반응 메모 (선택)" maxlength="160" />
+        </div>
+        <textarea id="recipeIngredients" rows="2" maxlength="600"
+          placeholder="재료와 분량 (예: 한우 안심 40g · 가지 15g · 배 15g · 중기쌀가루 17g · 오트밀 17g · 물 160ml)"></textarea>
+        <textarea id="recipeTips" rows="2" maxlength="600"
+          placeholder="조리 팁 · 영양 포인트 (예: 가지는 껍질 제거, 취사 후 기버터 1g)"></textarea>
+        <p class="hint">주재료로 나눠 두면 아침 소고기 · 저녁 닭·생선 순환을 짜기 쉬워요.</p>
+      </form>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>🥣 이유식 레시피북</h2>
+          <span class="count-badge" id="recipeCount">0건</span>
+        </div>
+        <div class="filter-row">
+          <input id="recipeSearch" class="search-input" type="search" placeholder="메뉴 · 재료 · 일수로 찾기" maxlength="40" aria-label="레시피 검색" />
+          <div class="chip-group" id="recipeFilters" role="group" aria-label="주재료 필터">
+            <button class="chip is-active" type="button" data-recipe-filter="all">전체</button>
+            <button class="chip" type="button" data-recipe-filter="소고기">소고기</button>
+            <button class="chip" type="button" data-recipe-filter="닭고기">닭고기</button>
+            <button class="chip" type="button" data-recipe-filter="생선">생선</button>
+            <button class="chip" type="button" data-recipe-filter="특식">특식</button>
+          </div>
+        </div>
+        <div class="recipe-grid" id="recipeGrid"></div>
+      </div>
+    </section>
+
+    <!-- 육아일기 -->
+    <section class="view" id="view-diary">
+      <form class="card add-form" id="diaryForm">
+        <h2 class="form-title">📖 육아일기 <small>생후 일수로 적는 하루</small></h2>
+        <div class="form-row">
+          <input id="diaryDate" type="date" class="mini-select" aria-label="일기 날짜" required />
+          <input id="diaryDayLabel" type="text" placeholder="생후 일수 (예: 생후 232일차)" maxlength="40" />
+          <select id="diaryChild" class="mini-select" aria-label="아이">
+            <option>함께</option><option>다연</option><option>시준</option><option>시호</option>
+          </select>
+          <select id="diaryAuthor" class="mini-select" aria-label="작성자">
+            <option>부자</option><option>숑미</option><option>찬범</option>
+          </select>
+          <button class="primary-btn" type="submit">쓰기</button>
+        </div>
+        <input id="diaryTitle" type="text" class="wide-input" placeholder="제목 (예: 빨간 수납 스툴을 짚고 일어선 날)" maxlength="80" required />
+        <textarea id="diaryContent" rows="3" maxlength="2000" required
+          placeholder="오늘 있었던 일, 먹은 것, 새로 한 동작…"></textarea>
+        <p class="hint">주소·연락처·생년월일·병원 이름 같은 개인정보는 적지 않아요.</p>
+      </form>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>📖 육아일기</h2>
+          <span class="count-badge" id="diaryCount">0건</span>
+        </div>
+        <div class="filter-row">
+          <div class="chip-group" id="diaryFilters" role="group" aria-label="아이 필터">
+            <button class="chip is-active" type="button" data-diary-filter="all">전체</button>
+            <button class="chip" type="button" data-diary-filter="다연">다연</button>
+            <button class="chip" type="button" data-diary-filter="시준">시준</button>
+            <button class="chip" type="button" data-diary-filter="시호">시호</button>
+            <button class="chip" type="button" data-diary-filter="함께">함께</button>
+          </div>
+        </div>
+        <div class="diary-timeline" id="diaryTimeline"></div>
+      </div>
     </section>
 
     <!-- 공동 메모 -->

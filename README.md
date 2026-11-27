@@ -11,7 +11,9 @@
 | 회의실 | 실시간 채팅, `@부자` `@찬범비서` `@all` 태그, 멘션 필터 |
 | 작업실 | 부부 공동 할 일 보드 (대기 → 진행중 → 완료), 담당 비서·분류 표시 |
 | 가계부 | 월별 합산·담당별·분류별 지출, 지출 기록 (민감정보 없이 날짜·항목·금액·분류·담당만) |
-| 육아현황 | 아이별 돌봄·이유식·수면·일정 카드 (태명 튼튼이 · 쿵이 · 쾅이만 사용) |
+| 육아현황 | 아이별 돌봄·이유식·수면·일정 카드 (다연 · 시준 · 시호) |
+| 이유식 레시피북 | 생후 일수·주재료(소고기/닭고기/생선/특식)별 레시피 카드, 검색·필터, 재료·분량·팁·반응 메모 추가/삭제 |
+| 육아일기 | 아이 태그별 타임라인 일기, 생후 일수·제목·본문·작성자(숑미/찬범/부자) 추가/삭제 |
 | 공동 메모 | 장보기·육아·생활 메모, 상단 고정(📌) |
 | 비서현황 | 최근 활동·상태·지금 하는 일, 연결 상태, 한도 절약 안내 |
 
@@ -19,8 +21,11 @@
 
 ### 1) Supabase 테이블 만들기
 Supabase 프로젝트 → **SQL Editor** → `schema.sql` 전체를 붙여넣고 **Run**.
-`agents`, `messages`, `tasks`, `ledger_entries`, `parenting_status`, `memos` 6개 테이블과
-RLS 정책, 실시간 발행, 기본 비서 2명이 만들어집니다. (여러 번 실행해도 안전)
+`agents`, `messages`, `tasks`, `ledger_entries`, `parenting_status`, `memos`,
+`recipes`, `baby_diary` 8개 테이블과 RLS 정책, 실시간 발행, 기본 비서 2명이 만들어집니다. (여러 번 실행해도 안전)
+
+이미 6개 테이블을 만들어 둔 상태라면 **`schema_addon.sql`** 만 따로 실행하면 됩니다.
+이유식 레시피북·육아일기 테이블에 지금까지 확정한 레시피 28건과 육아일기 12건이 함께 들어갑니다.
 
 ### 2) 접속 정보 넣기
 `config.js` 의 `supabase` 값을 채웁니다. 이미 채워져 있습니다.
@@ -56,7 +61,7 @@ supabase: {
 ## 개인정보 원칙
 
 - 실명 대신 `숑미`, `찬범`, `부자`, `찬범비서` 호칭만 사용합니다.
-- 아이는 태명 `튼튼이`, `쿵이`, `쾅이` 로만 표기합니다.
+- 아이는 `다연`, `시준`, `시호` 로 표기합니다.
 - 가계부는 날짜·항목·금액·분류·담당만 저장하고 계좌·카드 정보는 넣지 않습니다.
 - 저장소가 공개(public)이므로 Pages 주소는 가족에게만 공유하세요.
   더 강한 보호가 필요하면 Supabase Auth(이메일 로그인)를 켜고 RLS 정책을
@@ -65,11 +70,13 @@ supabase: {
 ## 파일 구성
 
 ```
-index.html      화면 구조 (잠금 화면 + 7개 탭 + 설정 모달)
+index.html      화면 구조 (잠금 화면 + 9개 탭 + 설정 모달)
 styles.css      크림/우드 톤 반응형 스타일
 app.js          잠금, 렌더링, Supabase 실시간 연동, 데모 모드
 config.js       비서실 이름 · 호칭 · PIN 해시 · Supabase 키
 schema.sql      Supabase 테이블 · RLS · 실시간 · 예시 데이터
+schema_addon.sql  레시피북·육아일기 테이블 + 실제 레시피·일기 시드 (따로 실행용)
+assets/apple-touch-icon.png  홈 화면에 추가할 때 쓰는 앱 아이콘 (180×180)
 assets/office-map.png   클레이 3D 오피스 맵 (원본)
 assets/office-map.webp  같은 이미지의 가벼운 버전 (86KB, 실제 표시용)
 ```
@@ -103,3 +110,5 @@ python3 -m http.server 8000
 | ledger_entries | id(bigserial) · entry_date · title · amount · category · owner · note · created_at |
 | parenting_status | id(bigserial) · child_tag · category · title · detail · status_date · created_at |
 | memos | id(bigserial) · title · content · author · pinned · updated_at |
+| recipes | id(bigserial) · day_num · recipe_date · title · main_ingredient · ingredients · portion · tips · reaction · created_at |
+| baby_diary | id(bigserial) · diary_date · day_label · child_tag · title · content · author · created_at |

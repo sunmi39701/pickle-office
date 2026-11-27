@@ -261,7 +261,7 @@ h1,h2,h3{font-family:var(--font-title);font-weight:400;letter-spacing:-.01em}
   border:1px solid var(--line);background:#FFFDF9;border-radius:11px;padding:9px 12px;font-size:13px;min-width:0;
 }
 .add-form .form-row > input[type=text]{flex:1 1 220px}
-.add-form .form-row > input[type=number]{flex:0 1 120px}
+.add-form .form-row > input[type=number]{flex:0 1 160px}
 .wide-input{width:100%;margin-top:8px;border:1px solid var(--line);background:#FFFDF9;border-radius:11px;padding:9px 12px;font-size:13px}
 .hint{font-size:11.5px;color:var(--ink-3);margin:9px 0 0;line-height:1.6}
 
@@ -357,6 +357,66 @@ h1,h2,h3{font-family:var(--font-title);font-weight:400;letter-spacing:-.01em}
 .conn-detail code{background:var(--cream-2);border-radius:6px;padding:1px 5px;font-size:11.5px}
 .tip-list{margin:0;padding-left:18px;font-size:12.5px;color:var(--ink-2);line-height:1.8}
 
+/* 이유식 레시피북 · 육아일기 */
+.filter-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.filter-row .search-input{
+  flex:1 1 200px;min-width:150px;border:1px solid var(--line);background:#FFFDF9;
+  border-radius:11px;padding:9px 12px;font-size:12.5px;
+}
+.filter-row .search-input:focus{outline:2px solid rgba(169,139,243,.35);outline-offset:1px;border-color:rgba(169,139,243,.5)}
+.chip-group{display:flex;gap:5px;flex-wrap:wrap}
+.chip.is-active{background:linear-gradient(180deg,#C39163,#A5713F);border-color:#A5713F;color:#fff;box-shadow:0 3px 10px rgba(165,113,63,.22)}
+
+.add-form .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-top:8px}
+.add-form textarea{
+  width:100%;border:1px solid var(--line);background:#FFFDF9;border-radius:11px;
+  padding:9px 12px;font-size:13px;line-height:1.6;resize:vertical;min-height:52px;margin-top:8px;
+}
+.add-form textarea:focus{outline:2px solid rgba(169,139,243,.35);outline-offset:1px;border-color:rgba(169,139,243,.5)}
+
+.recipe-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;align-items:start}
+.recipe-card{
+  background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;
+  box-shadow:0 3px 10px rgba(120,86,55,.06);display:flex;flex-direction:column;gap:8px;
+}
+.r-head{display:flex;align-items:center;gap:8px}
+.r-day{font-family:var(--font-title);font-size:12px;color:#fff;background:linear-gradient(180deg,#C08F5F,#A5713F);
+  border-radius:999px;padding:3px 10px;white-space:nowrap}
+.r-date{font-size:11px;color:var(--ink-3);margin-right:auto}
+.r-title{font-size:14.5px;line-height:1.4;color:var(--wood-3);margin:0}
+.r-tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag.main-beef{background:var(--peach-soft);color:#A95A3C}
+.tag.main-chicken{background:var(--amber-soft);color:#8A6118}
+.tag.main-fish{background:var(--blue-soft);color:#3E7C99}
+.tag.main-special{background:var(--lav-soft);color:#6E4FBF}
+.r-block{font-size:12px;line-height:1.62;color:var(--ink-2);word-break:break-word}
+.r-block > b{display:block;font-size:10.5px;font-weight:400;color:var(--ink-3);letter-spacing:.02em;margin-bottom:1px}
+.r-block.tips{background:var(--amber-soft);border-radius:12px;padding:8px 10px}
+.r-block.tips > b{color:#8A6118}
+.r-block.reaction{background:var(--mint-soft);border-radius:12px;padding:8px 10px}
+.r-block.reaction > b{color:#2F7A5B}
+
+.diary-timeline{position:relative;padding-left:20px}
+.diary-timeline::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;border-radius:2px;
+  background:linear-gradient(180deg,rgba(176,124,79,.35),rgba(176,124,79,.08))}
+.diary-month{font-size:11px;color:var(--ink-3);margin:2px 0 8px;padding-left:2px}
+.diary-item{position:relative;background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px 14px;
+  margin-bottom:12px;box-shadow:0 3px 10px rgba(120,86,55,.06)}
+.diary-item::before{content:"";position:absolute;left:-19px;top:18px;width:8px;height:8px;border-radius:50%;
+  background:var(--wood);box-shadow:0 0 0 3px var(--cream)}
+.d-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.d-date{font-size:11.5px;color:var(--ink-3)}
+.d-tools{display:flex;align-items:center;gap:6px}
+.d-day{font-size:11px;color:var(--wood);margin-top:5px}
+.d-title{font-family:var(--font-title);font-size:14.5px;line-height:1.4;color:var(--wood-3);margin:2px 0 6px}
+.d-content{font-size:12.8px;line-height:1.72;color:var(--ink-2);white-space:pre-wrap;word-break:break-word}
+.d-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;font-size:10.5px;color:var(--ink-3)}
+.author-tag{background:var(--cream-2);border-radius:999px;padding:2px 9px;color:var(--ink-2)}
+.tag.k1{background:var(--blue-soft);color:#3E7C99}
+.tag.k2{background:var(--peach-soft);color:#A95A3C}
+.tag.k3{background:var(--mint-soft);color:#2F7A5B}
+.tag.k4{background:var(--lav-soft);color:#6E4FBF}
+
 /* 공통 */
 .foot{display:flex;justify-content:space-between;gap:10px;font-size:11px;color:var(--ink-3);padding:18px 4px 0;border-top:1px solid var(--line);margin-top:10px;flex-wrap:wrap}
 
@@ -390,6 +450,10 @@ h1,h2,h3{font-family:var(--font-title);font-weight:400;letter-spacing:-.01em}
   .kanban{grid-template-columns:1fr;gap:10px}
   .kanban-col{min-height:auto}
   .memo-board{grid-template-columns:1fr}
+  .recipe-grid{grid-template-columns:1fr}
+  .filter-row .search-input{flex:1 1 100%}
+  .diary-timeline{padding-left:16px}
+  .diary-item::before{left:-15px}
   .chat-log{max-height:48vh}
   .chat-form{flex-wrap:wrap}
   .chat-form select{order:-1}
@@ -409,6 +473,7 @@ h1,h2,h3{font-family:var(--font-title);font-weight:400;letter-spacing:-.01em}
 @media (max-width:420px){
   .cat-row{grid-template-columns:44px 1fr 70px}
   .add-form .form-row > input[type=text]{flex:1 1 100%}
+  .add-form .form-row > input[type=number]{flex:1 1 100%}
 }
 @media (prefers-reduced-motion:reduce){
   *{animation:none !important;transition:none !important}

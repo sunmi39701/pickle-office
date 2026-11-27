@@ -1,6 +1,6 @@
 /* ==================================================================
  * 우리가족 비서실 — app.js
- * PIN 잠금 + 오피스맵 / 회의실 / 작업실 / 가계부 / 육아현황 / 공동 메모 / 비서현황
+ * PIN 잠금 + 오피스맵 / 회의실 / 작업실 / 가계부 / 육아현황 / 이유식 레시피북 / 육아일기 / 공동 메모 / 비서현황
  * Supabase(@supabase/supabase-js v2) 실시간 연결, 키가 없거나 실패하면 데모 모드.
  *
  * 테이블 (schema.sql 과 동일)
@@ -10,6 +10,8 @@
  *   ledger_entries(id bigserial, entry_date, title, amount, category, owner, note, created_at)
  *   parenting_status(id bigserial, child_tag, category, title, detail, status_date, created_at)
  *   memos(id bigserial, title, content, author, pinned, updated_at)
+ *   recipes(id bigserial, day_num, recipe_date, title, main_ingredient, ingredients, portion, tips, reaction, created_at)
+ *   baby_diary(id bigserial, diary_date, day_label, child_tag, title, content, author, created_at)
  * ================================================================== */
 (function () {
   'use strict';
@@ -36,7 +38,7 @@
     seenChat: 'po.seenChat',
     unlocked: 'po.unlocked'
   };
-  var TABLES = ['messages', 'tasks', 'ledger_entries', 'parenting_status', 'memos', 'agents'];
+  var TABLES = ['messages', 'tasks', 'ledger_entries', 'parenting_status', 'memos', 'recipes', 'baby_diary', 'agents'];
   var TASK_COLUMNS = ['대기', '진행중', '완료'];
   var STATUS_ALIAS = { todo: '대기', doing: '진행중', done: '완료', '대기중': '대기', '진행': '진행중', '작업중': '진행중' };
   var AGENT_STATUS_ALIAS = { online: '작업중', offline: '대기', active: '작업중', idle: '대기', busy: '작업중', '대기중': '대기' };
@@ -224,6 +226,53 @@
   }
 
   /* ── 데모 데이터 ───────────────────────────────────────── */
+  /* 🥣 이유식 레시피북 시드 — 2026-11-07 ~ 11-26 확정 레시피 (개인정보 없음) */
+  var RECIPE_SEED = [
+    { "day_num": 212, "recipe_date": "2026-11-07", "title": "땅콩소스 두부", "main_ingredient": "특식", "ingredients": "두부 30g · 무첨가 100% 땅콩버터 소량", "portion": "간식 1회 · 두부 30g", "tips": "두부(대두) 첫 시도. 땅콩버터는 무첨가만 쓰고, 입 주변 발진·피부 반응을 30분 살핀다.", "reaction": "5/10점 — 낯선 식감에 오묘한 표정, 절반 정도 먹음. 대두 알레르기 반응은 없었음."},
+    { "day_num": 213, "recipe_date": "2026-11-09", "title": "닭가슴살 사과 당근 오트밀 쌀죽", "main_ingredient": "닭고기", "ingredients": "중기쌀가루 15g · 퀵오트밀 15g · 닭가슴살 20g · 사과 20g · 당근 20g · 물 130ml", "portion": "1인 120g · 2인 240g (곡물 30g : 물 130ml)", "tips": "이유식·영양죽 모드로 4.3배죽. 사과 단맛이 당근 향을 부드럽게 잡아 준다.", "reaction": "시준 120g · 시호 110g 완식. 둘 다 10/10점, 10~13분 만에 비움."},
+    { "day_num": 215, "recipe_date": "2026-11-11", "title": "한우 안심 케일 사과죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 케일 15g · 사과 20g · 중기쌀가루 25g · 물 150ml", "portion": "1인 120g · 칸 240g", "tips": "철분 집중 식단. 케일은 데쳐 다지고 계란은 뺀다 — 소고기 철분 흡수를 막지 않게.", "reaction": "둘 다 120g 완밥 10/10점. 오전 240g 올클리어."},
+    { "day_num": 215, "recipe_date": "2026-11-11", "title": "닭고기 양배추 고구마 오트밀죽", "main_ingredient": "닭고기", "ingredients": "닭가슴살 20g · 계란 전란 1개 · 양배추 15g · 고구마 20g · 퀵오트밀 15g · 중기쌀가루 10g · 물 150ml", "portion": "1인 120g · 칸 240g", "tips": "전란은 취사 직전에 풀어 넣고 1인 1/2개. 저녁은 소화 편한 조합으로.", "reaction": "둘 다 120g 완밥. 계란 알레르기 이상무, 하루 480g 올클리어."},
+    { "day_num": 217, "recipe_date": "2026-11-12", "title": "한우 안심 검정콩 사과 오트밀 쌀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 20g · 검정콩 15g · 사과 20g · 오트밀죽 자투리 9g · 중기쌀가루 25g · 물 160ml", "portion": "1인 120g · 칸 240g", "tips": "시준 변비 케어 — 사과 펙틴 + 오트밀 베타글루칸. 전 재료 기검증, 계란 없음.", "reaction": "둘 다 완밥. 다음 날 시준 쾌변 — 변비 해소 조합으로 등록."},
+    { "day_num": 217, "recipe_date": "2026-11-12", "title": "닭가슴살 고구마 비타민 오트밀 계란죽", "main_ingredient": "닭고기", "ingredients": "닭가슴살 20g · 계란 전란 1개 · 고구마 20g · 비타민 큐브 15g · 오트밀죽 큐브 34g · 중기쌀가루 15g · 물 140ml", "portion": "1인 120g · 칸 240g", "tips": "비타민 큐브 첫 시도. 남은 오트밀죽 큐브를 퐁당 넣어 농도를 맞췄다.", "reaction": "신규 비타민·전란 알레르기 이상무, 선호도 10/10. 저녁도 120g 완밥."},
+    { "day_num": 218, "recipe_date": "2026-11-13", "title": "한우 안심 당근 양배추 오트밀 쌀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 당근 15g · 양배추 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 150ml", "portion": "1인 120g · 칸 240g", "tips": "자투리 채소 소진 메뉴. 먹이기 직전 기버터 1g 또는 올리브유 1방울.", "reaction": "바닥까지 완밥 — 둘 다 120g, 하루 480g 올클리어."},
+    { "day_num": 218, "recipe_date": "2026-11-13", "title": "순살 가자미살 단호박 배 오트밀 전란죽", "main_ingredient": "생선", "ingredients": "가자미살 25g · 계란 전란 1개 · 단호박 15g · 배 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 140ml", "portion": "1인 120g · 칸 240g", "tips": "배 큐브 첫 도입. 가자미는 저수은 흰살생선, 전란은 취사 직전에.", "reaction": "둘 다 120g 완밥 — 배 알레르기 없이 통과."},
+    { "day_num": 219, "recipe_date": "2026-11-14", "title": "한우 안심 배 콜리플라워 오트밀 쌀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 배 15g · 콜리플라워 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 150ml", "portion": "1인 120g · 칸 240g", "tips": "콜리플라워 비타민C + 배 유기산으로 철분 흡수를 돕는 조합. 계란 없음.", "reaction": "개별 기록 없음 — 다음 날 전 메뉴를 잘 먹었다는 보고."},
+    { "day_num": 219, "recipe_date": "2026-11-14", "title": "닭가슴살 고구마 케일 오트밀 전란죽", "main_ingredient": "닭고기", "ingredients": "닭가슴살 20g · 계란 전란 1개 · 고구마 20g · 케일 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 140ml", "portion": "1인 120g · 칸 240g", "tips": "트립토판·콜린 조합으로 저녁 통잠을 노린 메뉴. 단호박 미보유라 케일로.", "reaction": "개별 기록 없음."},
+    { "day_num": 220, "recipe_date": "2026-11-15", "title": "한우 안심 사과 비타민 오트밀 쌀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 사과 15g · 비타민 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 150ml (취사 후 기버터 1g)", "portion": "1인 120g · 칸 240g · 하루 208kcal · 단백질 12.9g · 철분 1.9mg", "tips": "역대 1위 조합. 이날은 기버터를 깜빡하고 급여 — 다음 재등장 때는 완전체로.", "reaction": "최고 반응 — 둘 다 지금까지 먹은 메뉴 중 가장 잘 먹음. 거부 없이 완밥."},
+    { "day_num": 220, "recipe_date": "2026-11-15", "title": "가자미 고구마 무 오트밀 전란죽", "main_ingredient": "생선", "ingredients": "가자미살 25g · 계란 전란 1개 · 고구마 20g · 무 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 140ml", "portion": "1인 120g · 칸 240g · 하루 208.1kcal", "tips": "일요일 안전 원칙 — 새 재료 0종. 무 소화 효소로 야간 부담을 줄인다.", "reaction": "둘 다 거부 없이 잘 먹음. 계란·가자미·무 전 재료 이상 없음."},
+    { "day_num": 221, "recipe_date": "2026-11-16", "title": "한우 안심 사과 완두콩 오트밀 쌀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 사과 15g · 완두콩 15g · 중기쌀가루·오트밀 30g · 물 150ml (기버터 1g)", "portion": "1인 120g · 칸 240g", "tips": "완두콩은 이미 통과한 재료. 사과 유기산으로 소고기 철분 흡수를 돕는다.", "reaction": "시호 아침 125g 완밥 — 그릇을 뚝딱 비움. 시준·저녁 섭취는 기록 없음."},
+    { "day_num": 221, "recipe_date": "2026-11-16", "title": "닭가슴살 고구마 양배추 오트밀 전란죽", "main_ingredient": "닭고기", "ingredients": "닭가슴살 20g · 계란 전란 1개 · 고구마 20g · 양배추 15g · 중기쌀가루·오트밀 30g · 물 140ml", "portion": "1인 120g · 칸 240g", "tips": "애호박·당근 미보유로 양배추로 교체. 전란은 1인 1/2개.", "reaction": "기록 없음."},
+    { "day_num": 222, "recipe_date": "2026-11-17", "title": "한우 안심 배 오이 오트밀 쌀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 오이 15g · 배 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 150ml (기버터 1g)", "portion": "1인 120g · 칸 240g", "tips": "오이 첫 도전 — 껍질·씨 제거 후 다짐. 낮에 첫 급여하고 계란은 뺐다.", "reaction": "급여 후 기록 없음."},
+    { "day_num": 222, "recipe_date": "2026-11-17", "title": "가자미 고구마 검정콩 오트밀 전란죽", "main_ingredient": "생선", "ingredients": "가자미살 25g · 계란 전란 1개 · 고구마 20g · 검정콩 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 145ml", "portion": "1인 120g · 칸 240g", "tips": "저녁은 새 재료 0종. 케일 배합안에서 검정콩 15g으로 교체.", "reaction": "기록 없음."},
+    { "day_num": 223, "recipe_date": "2026-11-18", "title": "한우 사과 비타민 아보카도죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 사과 15g · 비타민 15g · 아보카도 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 150ml · 올리브유 1방울", "portion": "1인 120g · 칸 240g", "tips": "아보카도는 취사 후 따뜻할 때 으깨 섞기. 올레산이 지용성 영양 흡수를 돕는다.", "reaction": "기록 없음 — 아보카도 첫 반응은 관찰 대기."},
+    { "day_num": 223, "recipe_date": "2026-11-18", "title": "닭가슴살 고구마 케일 오트밀 전란죽", "main_ingredient": "닭고기", "ingredients": "닭가슴살 20g · 계란 전란 1개 · 고구마 20g · 케일 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 140ml", "portion": "1인 120g · 칸 240g", "tips": "단호박·브로콜리 미보유로 케일 교체. 저녁 1인 118kcal.", "reaction": "기록 없음."},
+    { "day_num": 226, "recipe_date": "2026-11-21", "title": "한우 사과 양배추 오트밀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 사과 15g · 양배추 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 150ml · 올리브유 1방울", "portion": "1인 120g · 칸 240g", "tips": "당초 생선(가자미) 메뉴로 잡았다가 냉동고 사정으로 한우로 교체.", "reaction": "반응 좋았음 — 11-22 보고."},
+    { "day_num": 226, "recipe_date": "2026-11-21", "title": "닭가슴살 당근 무 전란죽", "main_ingredient": "닭고기", "ingredients": "닭가슴살 20g · 계란 전란 1개 · 당근 20g · 무 15g · 중기쌀가루 15g · 퀵오트밀 15g · 물 140ml", "portion": "1인 120g · 칸 240g", "tips": "단호박 미보유로 당근 20g 교체. 무는 소화 효소로 야간 부담을 덜어 준다.", "reaction": "반응 좋았음."},
+    { "day_num": 228, "recipe_date": "2026-11-23", "title": "한우 애호박 사과 오트밀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 애호박 15g · 사과 15g · 중기쌀가루 17~18g · 퀵오트밀 17~18g · 물 160ml · 올리브유 1방울", "portion": "1인 130g · 칸 260g (120g → 130g 증량 첫날)", "tips": "증량 첫날. 물은 10ml 단위로만 잡고 곡물은 17~18g씩.", "reaction": "기록 없음."},
+    { "day_num": 228, "recipe_date": "2026-11-23", "title": "닭가슴살 양송이 당근 전란죽", "main_ingredient": "닭고기", "ingredients": "닭가슴살 15g · 계란 전란 1개 · 양송이버섯 15g · 당근 20g · 중기쌀가루 17~18g · 퀵오트밀 17~18g · 물 150ml", "portion": "1인 130g · 칸 260g", "tips": "양송이버섯 첫 도전 — 잘게 다져 넣는다. 계란은 취사 직전.", "reaction": "양송이 첫 급여 반응 무난함 (11-24 보고)."},
+    { "day_num": 229, "recipe_date": "2026-11-24", "title": "한우 새송이 비타민 오트밀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 새송이버섯 15g · 비타민 15g · 중기쌀가루 17~18g · 퀵오트밀 17~18g · 물 160ml · 올리브유 1방울 (취사 후 기버터 1g)", "portion": "1인 130g · 칸 260g", "tips": "새송이버섯 첫 도전. 식감이 질기지 않게 결 반대로 다진다.", "reaction": "반응 기록 없음."},
+    { "day_num": 229, "recipe_date": "2026-11-24", "title": "대구살 고구마 양배추 전란죽", "main_ingredient": "생선", "ingredients": "대구살 25g · 계란 전란 1개 · 고구마 20g · 양배추 15g · 중기쌀가루 17~18g · 퀵오트밀 17~18g · 물 160ml", "portion": "1인 130g · 칸 260g", "tips": "저수은 흰살생선 대구로 단백질 순환. 계란은 취사 직전.", "reaction": "기록 없음."},
+    { "day_num": 230, "recipe_date": "2026-11-25", "title": "한우 비트 양파 오트밀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 비트 15g · 양파 15g · 중기쌀가루 17~18g · 퀵오트밀 17~18g · 물 160ml · 올리브유 1방울 (취사 후 기버터 1g)", "portion": "1인 130g · 칸 260g · 하루 221.5kcal · 단백질 12.8g · 철분 1.7mg", "tips": "비트 첫 도전. 색소 때문에 붉은 대소변이 나올 수 있다고 미리 알고 보기. 이날은 오후 4시 급여.", "reaction": "반응 기록 없음 — 붉은 변 여부는 따로 확인하지 못함."},
+    { "day_num": 230, "recipe_date": "2026-11-25", "title": "닭가슴살 애호박 당근 전란죽", "main_ingredient": "닭고기", "ingredients": "닭가슴살 15g · 계란 전란 1개 · 애호박 15g · 당근 20g · 중기쌀가루 17~18g · 퀵오트밀 17~18g · 물 150ml", "portion": "1인 130g · 칸 260g", "tips": "기검증 재료만으로 짠 저녁. 애호박은 씨 제거 후 다짐.", "reaction": "기록 없음."},
+    { "day_num": 231, "recipe_date": "2026-11-26", "title": "한우 가지 배 오트밀죽", "main_ingredient": "소고기", "ingredients": "한우 안심 40g · 가지 15g · 배 15g · 중기쌀가루 17~18g · 퀵오트밀 17~18g · 물 160ml · 올리브유 1방울 (취사 후 기버터 1g)", "portion": "1인 130g · 칸 260g · 아침 100kcal · 단백질 6.1g", "tips": "가지 첫 도전 — 껍질은 질겨서 벗겨 낸다. 배의 단맛으로 가지 향을 눌러 준다.", "reaction": "기록 없음 — 첫 급여 반응 관찰 예정."},
+    { "day_num": 231, "recipe_date": "2026-11-26", "title": "대구살 고구마 당근 전란죽", "main_ingredient": "생선", "ingredients": "대구살 25g · 계란 전란 1개 · 고구마 20g · 당근 20g · 중기쌀가루 17~18g · 퀵오트밀 17~18g · 물 150ml", "portion": "1인 130g · 칸 260g · 저녁 130kcal · 단백질 7.3g", "tips": "기검증 재료 조합. 하루 단백질 13.4g을 맞춘 저녁 짝.", "reaction": "기록 없음."}
+  ];
+
+  /* 📖 육아일기 시드 — 2026-11-07 ~ 11-26 실제 기록 (개인정보 없음) */
+  var DIARY_SEED = [
+    {"diary_date": "2026-11-26", "day_label": "생후 231일차 · 이유식 52일차", "child_tag": "함께", "title": "가지 하나로 시작한 52일째", "content": "오늘의 새 재료는 가지였어요. 껍질이 질길 수 있어서 벗겨 내고, 달큰한 배 15g과 한우 안심 40g에 섞었습니다. 하루에 새 재료는 하나씩 — 이 원칙을 지킨 지도 벌써 52일째예요.\n아침은 한우 가지 배 오트밀죽, 저녁은 대구살 고구마 당근 전란죽으로 단백질을 순환시켰어요. 가지 반응은 아직 기록 전이라, 입 주변 발진이나 대소변 변화가 있으면 알려 주세요.", "author": "부자"},
+    {"diary_date": "2026-11-25", "day_label": "생후 230일차 · 이유식 51일차", "child_tag": "함께", "title": "비트를 처음 만난 날", "content": "새 재료는 비트 15g. 부득이하게 오후 4시에 급여하게 되어, 붉은 색소 때문에 기저귀가 붉게 보일 수 있다는 점을 미리 적어 두었어요.\n아침 한우 비트 양파 오트밀죽, 저녁 닭가슴살 애호박 당근 전란죽. 하루 221.5kcal, 단백질 12.8g, 철분 1.7mg.", "author": "부자"},
+    {"diary_date": "2026-11-24", "day_label": "생후 229일차 · 이유식 50일차", "child_tag": "시호", "title": "이유식 직후 입가로 살짝", "content": "아침에 생선 이유식을 먹이고 바로 직후에 시호가 입가로 게워냈어요. 분수처럼 뿜은 게 아니라 흘린 정도였고, 그 뒤로는 평소처럼 잘 놀았습니다. 130g으로 늘린 지 얼마 안 돼서 배가 찼던 것 같아요. 식후 20~30분은 세워 안고 있기로 했어요.", "author": "숑미"},
+    {"diary_date": "2026-11-22", "day_label": "생후 227일차", "child_tag": "시호", "title": "안방 강화마루 52cm, 그날 밤", "content": "낮 12시 21분, 시호가 침대에서 안방 강화마루로 떨어졌어요. 높이는 52cm.\n그날 밤엔 내가 잘못한 것 같아 잠을 못 잤습니다. 의식 이상도, 두개골 함몰도, 5초 이상 기절도 없었고 이마에 큰 멍이 든 것도 아니라서 2세 미만 기준으로는 머리 CT가 필요 없는 칸에 해당한다고 했어요. 48시간은 지켜보기로 하고, 침실은 바닥으로 바꾸기로 했습니다. 지금은 잘 먹고 잘 움직여요.", "author": "숑미"},
+    {"diary_date": "2026-11-21", "day_label": "생후 226일차", "child_tag": "시호", "title": "5일 만에 키가 1.3cm 줄었다?", "content": "동네 소아과에서 시호 65.7cm · 7.7kg. 5일 전에는 67.0cm였는데 1.3cm가 줄어 보여서 한참 들여다봤어요.\n같은 날 잰 게 아니라 자세와 측정 방식이 달라질 수 있고, 몸무게가 그대로인 걸 보면 급하게 자라다 멈춘 게 아니라 재는 자세 차이일 가능성이 커요. 다음 계측은 한 달 간격으로 천천히 보기로 했습니다.", "author": "부자"},
+    {"diary_date": "2026-11-18", "day_label": "생후 223일차", "child_tag": "시호", "title": "빨간 수납 스툴을 짚고 일어선 날", "content": "다연이가 바나나 먹는 걸 보다가, 시호가 빨간 수납 스툴을 두 손으로 짚고 스스로 일어났어요. 사진 두 장 남겼습니다.\n잡고 서는 것까지 왔으니 이제 잡고 걷는 날이 멀지 않았어요. 이날 아침 이유식은 한우 사과 비타민 아보카도죽.", "author": "숑미"},
+    {"diary_date": "2026-11-18", "day_label": "생후 223일차", "child_tag": "시준", "title": "엎드린 자세에서 엉덩이를 들기 시작", "content": "시준이는 엎드린 자세에서 엉덩이를 들기 시작했어요. 네발기기로 넘어가는 신호라고 해서 사진을 남겨 두었습니다. 형은 조용히 순서대로 가는 편이에요.", "author": "숑미"},
+    {"diary_date": "2026-11-16", "day_label": "생후 221일차", "child_tag": "함께", "title": "8일 만의 계측 — 몸무게는 그대로, 키만", "content": "시준 65.0cm · 7.2kg, 시호 67.0cm · 7.7kg. 8일 전과 견줘 몸무게는 그대로고 키만 시준 +0.4cm, 시호 +0.1cm.\n백분위로는 시준 키 1.9%·몸무게 8.4%, 시호 키 12.2%·몸무게 22.0%. 숫자가 내려간 것처럼 보이는 건 일수만 늘었기 때문이라, 한 달 간격 추세로 보기로 했어요. 겨울 내복 80호에 잘 맞는다는 것도 확인했습니다.", "author": "부자"},
+    {"diary_date": "2026-11-15", "day_label": "생후 220일차", "child_tag": "함께", "title": "지금까지 먹은 메뉴 중 최고 반응", "content": "한우 안심 40g에 사과 15g, 비타민 15g을 넣은 아침 죽을 둘 다 거부 없이 완밥했어요. 지금까지 먹은 메뉴 중에 제일 잘 먹은 날이었습니다.\n다만 기버터 1g을 깜빡해서 지방 보강 없이 먹었다는 건 기록해 둬요. 다음에 다시 낼 때는 완전체로.", "author": "부자"},
+    {"diary_date": "2026-11-11", "day_label": "생후 215일차", "child_tag": "함께", "title": "하루 480g, 둘 다 동시 완밥", "content": "아침 한우 케일 사과죽, 저녁 닭고기 양배추 고구마 오트밀죽. 네 끼 모두 120g씩, 하루 480g을 남김없이 비웠어요. 칸막이 밥솥 한 번으로 두 끼를 만드는 방식이 자리 잡힌 날입니다.", "author": "부자"},
+    {"diary_date": "2026-11-09", "day_label": "생후 213일차", "child_tag": "함께", "title": "10분 만에 싹 비운 첫 닭가슴살 죽", "content": "닭가슴살 20g에 사과·당근 20g씩, 곡물 30g에 물 130ml. 시준이가 10분, 시호가 13분 만에 그릇을 비웠어요. 기상 후 1시간 반쯤 놀다 먹으면 식욕이 확 올라온다는 걸 알게 된 날입니다.", "author": "부자"},
+    {"diary_date": "2026-11-08", "day_label": "생후 212일차", "child_tag": "함께", "title": "휴지에 적어 온 첫 계측, 시준 7kg", "content": "소아과에서 급히 휴지에 적어 온 숫자: 시준 64.6cm · 7.2kg, 시호 66.9cm · 7.5kg.\n한 달 전과 견주면 시준이는 7kg을 처음 넘었고(체중 백분위 8.2% → 9.8%), 시호는 키가 2.6cm 자라(6.0% → 14.8%) 키 백분위가 크게 올랐어요. 체중이 정체였던 시준이가 앞자리를 바꾼 게 제일 반가웠습니다.", "author": "부자"}
+  ];
   function demoSeed() {
     var t = Date.now();
     var at = function (minAgo) { return new Date(t - minAgo * 60000).toISOString(); };
@@ -240,7 +289,7 @@
         { id: uid(), room: 'office', sender: CFG.family.partner, sender_role: 'partner', content: '@' + CFG.agents.partner + ' 저녁 장보기 목록 공동 메모에 붙여줘', mentions: [CFG.agents.partner], created_at: at(230) },
         { id: uid(), room: 'office', sender: CFG.agents.partner, sender_role: 'assistant_partner', content: '장보기 메모에 6개 항목 붙였습니다. 예산은 4만원으로 잡았어요.', mentions: [], created_at: at(228) },
         { id: uid(), room: 'office', sender: CFG.agents.owner, sender_role: 'assistant', content: '@all 이번 달 가계부는 30만원대예요. 육아 지출 비중이 제일 커요.', mentions: ['all'], created_at: at(95) },
-        { id: uid(), room: 'office', sender: CFG.agents.partner, sender_role: 'assistant_partner', content: '@' + CFG.agents.owner + ' 쾅이 이유식 기록 업데이트했어요. 새 재료는 천천히 시작하는 중입니다.', mentions: [CFG.agents.owner], created_at: at(48) }
+        { id: uid(), room: 'office', sender: CFG.agents.partner, sender_role: 'assistant_partner', content: '@' + CFG.agents.owner + ' 시호 이유식 기록 업데이트했어요. 새 재료는 천천히 시작하는 중입니다.', mentions: [CFG.agents.owner], created_at: at(48) }
       ],
       tasks: [
         { id: uid(), title: '어린이집 준비물 챙기기', assignee: CFG.agents.owner, status: '대기', category: '육아', created_at: at(350) },
@@ -262,12 +311,12 @@
         { id: uid(), entry_date: pm + '-20', title: '장보기', amount: 46800, category: '식비', owner: '공동', note: '', created_at: at(28000) }
       ],
       parenting_status: [
-        { id: uid(), child_tag: '튼튼이', category: '이유식', title: '이유식 120ml 완식', detail: '새 재료 없이 익숙한 메뉴', status_date: ds(0), created_at: at(180) },
-        { id: uid(), child_tag: '튼튼이', category: '수면', title: '낮잠 1시간 20분', detail: '', status_date: ds(0), created_at: at(300) },
-        { id: uid(), child_tag: '쿵이', category: '이유식', title: '단호박 첫 시도', detail: '피부 반응 살피는 중 · 소량만', status_date: ds(0), created_at: at(210) },
-        { id: uid(), child_tag: '쿵이', category: '일정', title: '오전 돌봄 선생님 방문', detail: '예정대로 진행', status_date: ds(0), created_at: at(420) },
-        { id: uid(), child_tag: '쾅이', category: '수유', title: '분유 180ml', detail: '', status_date: ds(0), created_at: at(150) },
-        { id: uid(), child_tag: '쾅이', category: '건강', title: '체온 36.7도', detail: '컨디션 좋음', status_date: ds(1), created_at: at(360) },
+        { id: uid(), child_tag: '다연', category: '이유식', title: '이유식 120ml 완식', detail: '새 재료 없이 익숙한 메뉴', status_date: ds(0), created_at: at(180) },
+        { id: uid(), child_tag: '다연', category: '수면', title: '낮잠 1시간 20분', detail: '', status_date: ds(0), created_at: at(300) },
+        { id: uid(), child_tag: '시준', category: '이유식', title: '단호박 첫 시도', detail: '피부 반응 살피는 중 · 소량만', status_date: ds(0), created_at: at(210) },
+        { id: uid(), child_tag: '시준', category: '일정', title: '오전 돌봄 선생님 방문', detail: '예정대로 진행', status_date: ds(0), created_at: at(420) },
+        { id: uid(), child_tag: '시호', category: '수유', title: '분유 180ml', detail: '', status_date: ds(0), created_at: at(150) },
+        { id: uid(), child_tag: '시호', category: '건강', title: '체온 36.7도', detail: '컨디션 좋음', status_date: ds(1), created_at: at(360) },
         { id: uid(), child_tag: '가족', category: '일정', title: '주말 가족 외출 준비', detail: '기저귀 · 여벌옷 · 간식', status_date: ds(1), created_at: at(520) }
       ],
       memos: [
@@ -276,6 +325,13 @@
         { id: uid(), title: '생활', content: '현관 센서등 교체 알아보기 · 분리수거는 금요일 저녁', author: CFG.family.partner, pinned: false, updated_at: at(1200) },
         { id: uid(), title: '기타', content: '12월 가족사진 예약 알아보기', author: CFG.family.owner, pinned: false, updated_at: at(2000) }
       ],
+      recipes: RECIPE_SEED.map(function (r, i) {
+        var o = Object.assign({ id: uid(), created_at: at(1440 * 6 - i * 25) }, r);
+        return o;
+      }),
+      baby_diary: DIARY_SEED.map(function (d, i) {
+        return Object.assign({ id: uid(), created_at: at(1440 * 6 - i * 25) }, d);
+      }),
       agents: [
         { id: 'buja', name: CFG.agents.owner, role: CFG.family.owner + ' 님 전담 비서', status: '작업중', current_task: '오피스 맵 · 작업실 카드 정리 중', updated_at: at(3) },
         { id: 'partner', name: CFG.agents.partner, role: CFG.family.partner + ' 님 전담 비서', status: '대기', current_task: '장보기 메모 반영 완료', updated_at: at(26) }
@@ -392,6 +448,9 @@
     connError: null,
     warned: false,
     ledgerMonth: monthKey(new Date()),
+    recipeFilter: 'all',
+    recipeQuery: '',
+    diaryFilter: 'all',
     seenChat: Number(localStorage.getItem(LS.seenChat) || 0)
   };
 
@@ -415,7 +474,7 @@
       console.warn('[비서실] 읽기 실패', err);
       if (db.online && !state.warned) {
         state.warned = true;
-        toast('Supabase 테이블을 읽지 못했어요. schema.sql 실행 여부를 확인해 주세요.');
+        toast('Supabase 테이블을 읽지 못했어요. schema.sql · schema_addon.sql 실행 여부를 확인해 주세요.');
       }
     }
     renderAll();
@@ -453,10 +512,10 @@
     var c = supaCfg(), lines = [];
     if (db.online && !state.connError) {
       lines.push('✅ <b>Supabase 실시간 연결됨</b><br><code>' + esc((c.url || '').replace(/^https?:\/\//, '')) + '</code>');
-      lines.push('메시지 · 할 일 · 가계부 · 육아현황 · 메모가 두 분 기기에서 실시간으로 함께 보여요.');
+      lines.push('메시지 · 할 일 · 가계부 · 육아현황 · 레시피 · 육아일기 · 메모가 두 분 기기에서 실시간으로 함께 보여요.');
     } else if (db.online) {
       lines.push('⚠️ 연결은 됐지만 테이블을 읽지 못했어요.');
-      lines.push('Supabase SQL Editor 에서 <code>schema.sql</code> 을 실행했는지 확인해 주세요.');
+      lines.push('Supabase SQL Editor 에서 <code>schema.sql</code>(과 이유식·육아일기용 <code>schema_addon.sql</code>)을 실행했는지 확인해 주세요.');
       lines.push('지금은 예시 데이터를 보여 주고 있습니다.');
     } else {
       lines.push('🧪 <b>데모 모드</b> — 지금은 이 브라우저에만 저장돼요.');
@@ -627,9 +686,9 @@
 
   /* ── 육아현황 ─────────────────────────────────────────── */
   var KID_ORDER = [
-    { name: '튼튼이', emoji: '🌱', cls: '' },
-    { name: '쿵이', emoji: '🍀', cls: 'k2' },
-    { name: '쾅이', emoji: '⭐', cls: 'k3' },
+    { name: '다연', emoji: '🌱', cls: '' },
+    { name: '시준', emoji: '🍀', cls: 'k2' },
+    { name: '시호', emoji: '⭐', cls: 'k3' },
     { name: '가족', emoji: '🏠', cls: 'k4' }
   ];
   function renderParenting() {
@@ -658,6 +717,170 @@
         }).join('') : '<div class="empty" style="padding:14px 4px">아직 기록이 없어요.</div>') +
         '</div>';
     }).join('');
+  }
+
+  /* ── 이유식 레시피북 ─────────────────────────────────── */
+  var RECIPE_MAIN_ORDER = ['소고기', '닭고기', '생선', '특식'];
+  var RECIPE_MAIN_KEYS = { '소고기': 'beef', '닭고기': 'chicken', '생선': 'fish', '특식': 'special' };
+  function mmdd(v) {
+    var s = String(v || '');
+    return /^\d{4}-\d{2}-\d{2}/.test(s) ? Number(s.slice(5, 7)) + '/' + Number(s.slice(8, 10)) : '';
+  }
+  function koDate(v) {
+    var s = String(v || '');
+    if (!/^\d{4}-\d{2}-\d{2}/.test(s)) return '';
+    var y = Number(s.slice(0, 4)), m = Number(s.slice(5, 7)), d = Number(s.slice(8, 10));
+    var w = ['일', '월', '화', '수', '목', '금', '토'][new Date(y, m - 1, d).getDay()];
+    return m + '월 ' + d + '일 (' + w + ')';
+  }
+  function recipeHay(r) {
+    return [r.title, r.main_ingredient, r.ingredients, r.portion, r.tips, r.reaction,
+      r.day_num == null ? '' : String(r.day_num), r.recipe_date].join(' ').toLowerCase();
+  }
+  function renderRecipes() {
+    var list = rows('recipes').slice().sort(function (a, b) {
+      var da = Number(a.day_num) || 0, db2 = Number(b.day_num) || 0;
+      if (da !== db2) return db2 - da;
+      var ia = RECIPE_MAIN_ORDER.indexOf(a.main_ingredient || '특식');
+      var ib = RECIPE_MAIN_ORDER.indexOf(b.main_ingredient || '특식');
+      if (ia !== ib) return (ia < 0 ? 9 : ia) - (ib < 0 ? 9 : ib);
+      return String(a.recipe_date || '').localeCompare(String(b.recipe_date || ''));
+    });
+    var q = (state.recipeQuery || '').trim().toLowerCase();
+    var filtered = list.filter(function (r) {
+      if (state.recipeFilter !== 'all' && (r.main_ingredient || '특식') !== state.recipeFilter) return false;
+      return !q || recipeHay(r).indexOf(q) !== -1;
+    });
+    var countEl = $('#recipeCount');
+    if (countEl) {
+      countEl.textContent = filtered.length + '건' + (filtered.length !== list.length ? ' / 전체 ' + list.length : '');
+    }
+    var grid = $('#recipeGrid');
+    if (!grid) return;
+    if (!filtered.length) {
+      grid.innerHTML = '<div class="empty">' +
+        (list.length ? '조건에 맞는 레시피가 없어요. 필터를 바꾸거나 검색어를 지워 보세요.'
+          : '아직 레시피가 없어요. 위에서 첫 레시피를 남겨 보세요.') + '</div>';
+      return;
+    }
+    grid.innerHTML = filtered.map(function (r) {
+      var main = r.main_ingredient || '특식';
+      var mainCls = RECIPE_MAIN_KEYS[main] || 'special';
+      var dayTxt = Number(r.day_num) > 0 ? '생후 ' + Number(r.day_num) + '일차' : '일수 미기록';
+      return '<article class="recipe-card">' +
+        '<div class="r-head"><span class="r-day">' + esc(dayTxt) + '</span>' +
+        '<span class="r-date">' + esc(mmdd(r.recipe_date)) + '</span>' +
+        '<button class="t-btn" type="button" data-recipe-del="' + esc(r.id) + '" aria-label="레시피 삭제">✕</button></div>' +
+        '<h3 class="r-title">' + esc(r.title) + '</h3>' +
+        '<div class="r-tags"><span class="tag main-' + mainCls + '">' + esc(main) + '</span></div>' +
+        (r.portion ? '<div class="r-block"><b>분량</b>' + esc(r.portion) + '</div>' : '') +
+        (r.ingredients ? '<div class="r-block"><b>재료</b>' + esc(r.ingredients) + '</div>' : '') +
+        (r.tips ? '<div class="r-block tips"><b>팁 · 영양</b>' + esc(r.tips) + '</div>' : '') +
+        (r.reaction ? '<div class="r-block reaction"><b>반응</b>' + esc(r.reaction) + '</div>' : '') +
+        '</article>';
+    }).join('');
+  }
+  async function addRecipe(ev) {
+    ev.preventDefault();
+    var title = $('#recipeTitle').value.trim();
+    if (!title) return;
+    var dayRaw = $('#recipeDay').value.trim();
+    var day = dayRaw === '' ? null : Number(dayRaw);
+    if (day != null && (!isFinite(day) || day < 0)) { toast('생후 일수는 숫자로 넣어 주세요.'); return; }
+    try {
+      await db.insert('recipes', {
+        day_num: day,
+        recipe_date: $('#recipeDate').value || dateKey(new Date()),
+        title: title,
+        main_ingredient: $('#recipeMain').value,
+        ingredients: $('#recipeIngredients').value.trim(),
+        portion: $('#recipePortion').value.trim(),
+        tips: $('#recipeTips').value.trim(),
+        reaction: $('#recipeReaction').value.trim()
+      });
+      ['#recipeDay', '#recipeTitle', '#recipePortion', '#recipeReaction', '#recipeIngredients', '#recipeTips']
+        .forEach(function (sel) { $(sel).value = ''; });
+      await reload('recipes');
+      toast('레시피를 추가했어요.');
+    } catch (e) { console.error(e); toast('레시피를 추가하지 못했어요. 연결 상태를 확인해 주세요.'); }
+  }
+  async function delRecipe(id) {
+    try { await db.remove('recipes', id); await reload('recipes'); toast('레시피를 지웠어요.'); }
+    catch (e) { console.error(e); toast('삭제하지 못했어요.'); }
+  }
+
+  /* ── 육아일기 ─────────────────────────────────────────── */
+  function diaryTagClass(tag) {
+    if (tag === '다연') return 'k1';
+    if (tag === '시준') return 'k2';
+    if (tag === '시호') return 'k3';
+    return 'k4';
+  }
+  function renderDiary() {
+    var list = rows('baby_diary').slice().sort(function (a, b) {
+      var da = String(a.diary_date || '') + ' ' + String(a.created_at || '');
+      var db2 = String(b.diary_date || '') + ' ' + String(b.created_at || '');
+      return db2 > da ? 1 : db2 < da ? -1 : 0;
+    });
+    var filtered = list.filter(function (d) {
+      return state.diaryFilter === 'all' || (d.child_tag || '함께') === state.diaryFilter;
+    });
+    var countEl = $('#diaryCount');
+    if (countEl) {
+      countEl.textContent = filtered.length + '건' + (filtered.length !== list.length ? ' / 전체 ' + list.length : '');
+    }
+    var el = $('#diaryTimeline');
+    if (!el) return;
+    if (!filtered.length) {
+      el.innerHTML = '<div class="empty">' +
+        (list.length ? '이 아이의 일기가 아직 없어요.' : '아직 일기가 없어요. 오늘 하루를 한 장 남겨 보세요.') + '</div>';
+      return;
+    }
+    var html = '', lastMonth = '';
+    filtered.forEach(function (d) {
+      var tag = d.child_tag || '함께';
+      var mk = String(d.diary_date || '').slice(0, 7);
+      if (mk && mk !== lastMonth) {
+        html += '<div class="diary-month">' + esc(mk.slice(0, 4) + '년 ' + Number(mk.slice(5, 7)) + '월') + '</div>';
+        lastMonth = mk;
+      }
+      html += '<article class="diary-item">' +
+        '<div class="d-head"><span class="d-date">' + esc(koDate(d.diary_date)) + '</span>' +
+        '<div class="d-tools"><span class="tag ' + diaryTagClass(tag) + '">' + esc(tag) + '</span>' +
+        '<button class="t-btn" type="button" data-diary-del="' + esc(d.id) + '" aria-label="일기 삭제">✕</button></div></div>' +
+        (d.day_label ? '<div class="d-day">' + esc(d.day_label) + '</div>' : '') +
+        '<h3 class="d-title">' + esc(d.title) + '</h3>' +
+        '<div class="d-content">' + esc(d.content || '') + '</div>' +
+        '<div class="d-foot"><span class="author-tag">' + esc(d.author || '부자') + '</span>' +
+        '<span>' + esc(relTime(d.created_at)) + '</span></div>' +
+        '</article>';
+    });
+    el.innerHTML = html;
+  }
+  async function addDiary(ev) {
+    ev.preventDefault();
+    var title = $('#diaryTitle').value.trim();
+    var content = $('#diaryContent').value.trim();
+    if (!title || !content) { toast('제목과 내용을 적어 주세요.'); return; }
+    try {
+      await db.insert('baby_diary', {
+        diary_date: $('#diaryDate').value || dateKey(new Date()),
+        day_label: $('#diaryDayLabel').value.trim(),
+        child_tag: $('#diaryChild').value,
+        title: title,
+        content: content,
+        author: $('#diaryAuthor').value
+      });
+      $('#diaryTitle').value = '';
+      $('#diaryContent').value = '';
+      $('#diaryDayLabel').value = '';
+      await reload('baby_diary');
+      toast('육아일기를 남겼어요.');
+    } catch (e) { console.error(e); toast('일기를 저장하지 못했어요. 연결 상태를 확인해 주세요.'); }
+  }
+  async function delDiary(id) {
+    try { await db.remove('baby_diary', id); await reload('baby_diary'); toast('일기를 지웠어요.'); }
+    catch (e) { console.error(e); toast('삭제하지 못했어요.'); }
   }
 
   /* ── 공동 메모 ────────────────────────────────────────── */
@@ -693,7 +916,8 @@
   /* ── 전체 렌더 ─────────────────────────────────────────── */
   function renderAll() {
     if (!state.booted) return;
-    renderMap(); renderChat(); renderTasks(); renderLedger(); renderParenting(); renderMemos(); renderAgents();
+    renderMap(); renderChat(); renderTasks(); renderLedger(); renderParenting();
+    renderRecipes(); renderDiary(); renderMemos(); renderAgents();
     setConnPill();
     updateBadges();
   }
@@ -981,6 +1205,36 @@
 
     $('#parentingForm').addEventListener('submit', addParenting);
 
+    $('#recipeForm').addEventListener('submit', addRecipe);
+    $('#recipeSearch').addEventListener('input', function (e) {
+      state.recipeQuery = e.target.value;
+      renderRecipes();
+    });
+    $('#recipeFilters').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-recipe-filter]');
+      if (!b) return;
+      state.recipeFilter = b.dataset.recipeFilter;
+      $all('#recipeFilters .chip').forEach(function (c) { c.classList.toggle('is-active', c === b); });
+      renderRecipes();
+    });
+    $('#recipeGrid').addEventListener('click', function (e) {
+      var del = e.target.closest('[data-recipe-del]');
+      if (del) delRecipe(del.dataset.recipeDel);
+    });
+
+    $('#diaryForm').addEventListener('submit', addDiary);
+    $('#diaryFilters').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-diary-filter]');
+      if (!b) return;
+      state.diaryFilter = b.dataset.diaryFilter;
+      $all('#diaryFilters .chip').forEach(function (c) { c.classList.toggle('is-active', c === b); });
+      renderDiary();
+    });
+    $('#diaryTimeline').addEventListener('click', function (e) {
+      var del = e.target.closest('[data-diary-del]');
+      if (del) delDiary(del.dataset.diaryDel);
+    });
+
     $('#memoForm').addEventListener('submit', addMemo);
     $('#memoBoard').addEventListener('click', function (e) {
       var pin = e.target.closest('[data-memo-pin]');
@@ -1028,6 +1282,8 @@
     $('#ledgerMonth').value = state.ledgerMonth;
     $('#ledgerDate').value = dateKey(new Date());
     $('#parentingDate').value = dateKey(new Date());
+    $('#recipeDate').value = dateKey(new Date());
+    $('#diaryDate').value = dateKey(new Date());
     $('#chatAs').value = myName();
 
     db.init();
@@ -1047,7 +1303,7 @@
       bootData();
     }
     var h = (location.hash || '').replace('#', '');
-    if (['map', 'chat', 'tasks', 'ledger', 'parenting', 'memos', 'agents'].indexOf(h) !== -1) {
+    if (['map', 'chat', 'tasks', 'ledger', 'parenting', 'recipes', 'diary', 'memos', 'agents'].indexOf(h) !== -1) {
       setTimeout(function () { if (!$('#app').hidden) switchTab(h); }, 350);
     }
   }
