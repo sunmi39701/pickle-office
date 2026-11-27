@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow, noarchive" />
+<meta name="theme-color" content="#FDF6EA" />
+<title>우리가족 비서실</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='24' cy='18' r='9' fill='%23A98BF3'/%3E%3Ccircle cx='40' cy='18' r='9' fill='%23A98BF3'/%3E%3Ccircle cx='32' cy='36' r='20' fill='%237CC3E8'/%3E%3Ccircle cx='25' cy='33' r='2.6' fill='%234A3A2E'/%3E%3Ccircle cx='39' cy='33' r='2.6' fill='%234A3A2E'/%3E%3Cpath d='M27 42q5 4 10 0' stroke='%234A3A2E' stroke-width='2.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ── 잠금 화면 ───────────────────────────────────────────── -->
+<div id="lockScreen" class="lock">
+  <div class="lock-card">
+    <div class="lock-mascot" aria-hidden="true">
+      <span class="ear ear-l"></span><span class="ear ear-r"></span>
+      <span class="face"><i class="eye"></i><i class="eye"></i><i class="mouth"></i></span>
+    </div>
+    <h1>우리가족 비서실</h1>
+    <p class="lock-sub">4자리 비밀번호를 눌러 주세요</p>
+
+    <div class="pin-dots" id="pinDots" aria-label="비밀번호 입력">
+      <span></span><span></span><span></span><span></span>
+    </div>
+    <p class="pin-msg" id="pinMsg" role="status" aria-live="polite"></p>
+
+    <div class="keypad" id="keypad">
+      <button type="button" data-key="1">1</button>
+      <button type="button" data-key="2">2</button>
+      <button type="button" data-key="3">3</button>
+      <button type="button" data-key="4">4</button>
+      <button type="button" data-key="5">5</button>
+      <button type="button" data-key="6">6</button>
+      <button type="button" data-key="7">7</button>
+      <button type="button" data-key="8">8</button>
+      <button type="button" data-key="9">9</button>
+      <button type="button" class="key-ghost" data-key="clear" aria-label="전체 지우기">↺</button>
+      <button type="button" data-key="0">0</button>
+      <button type="button" class="key-ghost" data-key="back" aria-label="한 자리 지우기">⌫</button>
+    </div>
+    <p class="lock-foot">숑미 님 · 찬범 님 · 부자 · 찬범비서</p>
+  </div>
+</div>
+
+<!-- ── 본문 ───────────────────────────────────────────────── -->
+<div id="app" class="app" hidden>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <span class="bm-ear bm-ear-l"></span><span class="bm-ear bm-ear-r"></span>
+        <span class="bm-face"><i></i><i></i></span>
+      </span>
+      <span class="brand-text">
+        <strong id="officeName">우리가족 비서실</strong>
+        <small>부자 × 찬범비서</small>
+      </span>
+    </div>
+
+    <div class="top-actions">
+      <span class="conn" id="connPill" title="실시간 연결 상태">
+        <i class="dot"></i><span id="connText">데모 모드</span>
+      </span>
+      <button class="icon-btn" id="btnSettings" type="button" title="설정" aria-label="설정">⚙</button>
+      <button class="ghost-btn" id="btnLock" type="button" title="잠금">🔒 <span class="lock-label">잠금</span></button>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" aria-label="비서실 메뉴">
+    <button class="tab is-active" type="button" data-tab="map"><span class="tab-ico">🏠</span>오피스 맵</button>
+    <button class="tab" type="button" data-tab="chat"><span class="tab-ico">💬</span>회의실<span class="tab-badge" id="badgeChat" hidden></span></button>
+    <button class="tab" type="button" data-tab="tasks"><span class="tab-ico">🗂️</span>작업실<span class="tab-badge" id="badgeTasks" hidden></span></button>
+    <button class="tab" type="button" data-tab="ledger"><span class="tab-ico">💰</span>가계부</button>
+    <button class="tab" type="button" data-tab="parenting"><span class="tab-ico">🍼</span>육아현황</button>
+    <button class="tab" type="button" data-tab="memos"><span class="tab-ico">📝</span>공동 메모</button>
+    <button class="tab" type="button" data-tab="agents"><span class="tab-ico">🤖</span>비서현황</button>
+  </nav>
+
+  <main class="main">
+
+    <!-- 오피스 맵 -->
+    <section class="view is-active" id="view-map">
+      <div class="map-wrap card">
+        <picture>
+          <source srcset="assets/office-map.webp" type="image/webp" />
+          <img src="assets/office-map.png" class="map-img" width="1100" height="1100"
+               alt="따뜻한 우드 톤 사무실에서 두 비서 캐릭터가 책상에 앉아 일하고 있는 클레이 3D 오피스" />
+        </picture>
+        <span class="map-badge badge-command">🗺️ 지휘실</span>
+        <span class="map-badge badge-meeting">☕ 회의실</span>
+        <span class="map-badge badge-lounge">🛋️ 라운지</span>
+        <div class="map-people" id="mapPeople"></div>
+      </div>
+
+      <div class="map-summary" id="mapSummary"></div>
+      <div class="grid-2" id="mapCards"></div>
+    </section>
+
+    <!-- 회의실 -->
+    <section class="view" id="view-chat">
+      <div class="card chat-card">
+        <div class="card-head">
+          <h2>💬 회의실</h2>
+          <div class="head-tools">
+            <select id="chatFilter" class="mini-select" aria-label="멘션 필터">
+              <option value="all">전체 메시지</option>
+              <option value="buja">@부자 멘션</option>
+              <option value="partner">@찬범비서 멘션</option>
+              <option value="any">태그된 메시지</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="chat-log" id="chatLog" aria-live="polite"></div>
+
+        <div class="mention-row">
+          <span class="mention-label">태그</span>
+          <button type="button" class="chip chip-buja" data-mention="@부자">@부자</button>
+          <button type="button" class="chip chip-partner" data-mention="@찬범비서">@찬범비서</button>
+          <button type="button" class="chip chip-all" data-mention="@all">@all</button>
+        </div>
+
+        <form class="chat-form" id="chatForm">
+          <select id="chatAs" class="mini-select" aria-label="보내는 사람">
+            <option value="숑미">숑미 님</option>
+            <option value="찬범">찬범 님</option>
+          </select>
+          <textarea id="chatInput" rows="1" placeholder="메시지를 입력하세요 (Shift+Enter 줄바꿈)" maxlength="2000"></textarea>
+          <button class="primary-btn" type="submit">보내기</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 작업실 -->
+    <section class="view" id="view-tasks">
+      <form class="card add-form" id="taskForm">
+        <h2 class="form-title">🗂️ 작업실 <small>부부 공동 할 일 보드</small></h2>
+        <div class="form-row">
+          <input id="taskTitle" type="text" placeholder="할 일 (예: 어린이집 준비물 챙기기)" maxlength="80" required />
+          <select id="taskCategory" class="mini-select">
+            <option>육아</option><option>집안일</option><option>장보기</option><option>일정</option><option>기타</option>
+          </select>
+          <select id="taskAssignee" class="mini-select">
+            <option value="부자">부자</option>
+            <option value="찬범비서">찬범비서</option>
+            <option value="둘 다">둘 다</option>
+            <option value="직접">직접</option>
+          </select>
+          <button class="primary-btn" type="submit">추가</button>
+        </div>
+      </form>
+
+      <div class="kanban" id="kanban"></div>
+    </section>
+
+    <!-- 가계부 -->
+    <section class="view" id="view-ledger">
+      <div class="card">
+        <div class="card-head">
+          <h2>💰 부부 합산 가계부</h2>
+          <input type="month" id="ledgerMonth" class="mini-select" aria-label="조회 월" />
+        </div>
+        <div class="stat-grid" id="ledgerStats"></div>
+        <div class="cat-bars" id="ledgerCats"></div>
+      </div>
+
+      <form class="card add-form" id="ledgerForm">
+        <div class="form-row">
+          <input type="date" id="ledgerDate" class="mini-select" required />
+          <input id="ledgerItem" type="text" placeholder="지출 항목 (예: 기저귀)" maxlength="60" required />
+          <input id="ledgerNote" type="text" placeholder="메모 (선택)" maxlength="60" />
+          <input id="ledgerAmount" type="number" min="0" step="100" placeholder="금액" required />
+          <select id="ledgerCategory" class="mini-select">
+            <option>육아</option><option>식비</option><option>생활</option>
+            <option>교통</option><option>의료</option><option>기타</option>
+          </select>
+          <select id="ledgerPayer" class="mini-select">
+            <option>숑미</option><option>찬범</option><option>공동</option>
+          </select>
+          <button class="primary-btn" type="submit">기록</button>
+        </div>
+        <p class="hint">계좌·카드번호 같은 민감정보는 넣지 않아요. 날짜·항목·금액·분류·담당만 기록합니다.</p>
+      </form>
+
+      <div class="card">
+        <h3 class="sub-title">지출 내역</h3>
+        <div id="ledgerList" class="ledger-list"></div>
+      </div>
+    </section>
+
+    <!-- 육아현황 -->
+    <section class="view" id="view-parenting">
+      <form class="card add-form" id="parentingForm">
+        <h2 class="form-title">🍼 육아현황 <small>오늘의 돌봄·이유식·일정</small></h2>
+        <div class="form-row">
+          <select id="parentingSubject" class="mini-select">
+            <option>튼튼이</option><option>쿵이</option><option>쾅이</option><option>가족</option>
+          </select>
+          <select id="parentingCategory" class="mini-select">
+            <option>이유식</option><option>수유</option><option>수면</option>
+            <option>일정</option><option>건강</option><option>놀이</option>
+          </select>
+          <input id="parentingTitle" type="text" placeholder="내용 (예: 이유식 120ml 완식)" maxlength="60" required />
+          <input id="parentingDate" type="date" class="mini-select" aria-label="기록 날짜" />
+          <button class="primary-btn" type="submit">기록</button>
+        </div>
+        <input id="parentingDetail" type="text" class="wide-input" placeholder="자세히 (선택)" maxlength="160" />
+        <p class="hint">아이 이름 대신 태명(튼튼이·쿵이·쾅이)만 사용합니다.</p>
+      </form>
+
+      <div class="kid-grid" id="kidGrid"></div>
+    </section>
+
+    <!-- 공동 메모 -->
+    <section class="view" id="view-memos">
+      <form class="card add-form" id="memoForm">
+        <h2 class="form-title">📝 공동 메모 <small>장보기 · 육아 · 생활</small></h2>
+        <div class="form-row">
+          <input id="memoTitle" type="text" placeholder="제목 (예: 장보기 · 육아 · 생활)" maxlength="30" required />
+          <input id="memoBody" type="text" placeholder="메모 내용" maxlength="160" />
+          <button class="primary-btn" type="submit">붙이기</button>
+        </div>
+        <p class="hint">제목에 분류를 적으면 찾기 쉬워요. 중요한 메모는 📌 로 위에 고정합니다.</p>
+      </form>
+      <div class="memo-board" id="memoBoard"></div>
+    </section>
+
+    <!-- 비서현황 -->
+    <section class="view" id="view-agents">
+      <div class="agent-grid" id="agentGrid"></div>
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="sub-title">🔌 연결 상태</h3>
+          <div id="connDetail" class="conn-detail"></div>
+          <button class="soft-btn" type="button" id="btnOpenSettings">설정 열기</button>
+        </div>
+        <div class="card">
+          <h3 class="sub-title">🪫 한도 절약 안내</h3>
+          <ul class="tip-list">
+            <li>한 번에 필요한 내용을 모아서 말하면 왕복이 줄어요.</li>
+            <li>같은 일을 두 번 시키지 않아도 되게, 결과는 메모·작업실에 남겨요.</li>
+            <li>가벼운 확인은 채팅 한 줄로, 큰 작업은 작업실 카드로 나눠요.</li>
+            <li>매일 반복되는 일은 예약으로 돌려서 대화 없이 처리해요.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span>우리가족 비서실 · 부자 × 찬범비서</span>
+    <span id="footConn"></span>
+  </footer>
+</div>
+
+<!-- 설정 모달 -->
+<div class="modal" id="settingsModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="card-head">
+      <h2 id="settingsTitle">⚙ 설정</h2>
+      <button class="icon-btn" type="button" id="btnCloseSettings" aria-label="닫기">✕</button>
+    </div>
+
+    <section class="modal-section">
+      <h3>4자리 비밀번호 변경</h3>
+      <div class="form-row">
+        <input id="pinCurrent" type="password" inputmode="numeric" maxlength="4" placeholder="현재 PIN" />
+        <input id="pinNew" type="password" inputmode="numeric" maxlength="4" placeholder="새 PIN" />
+        <input id="pinNew2" type="password" inputmode="numeric" maxlength="4" placeholder="새 PIN 확인" />
+        <button class="soft-btn" type="button" id="btnChangePin">변경</button>
+      </div>
+      <p class="hint" id="pinHint"></p>
+    </section>
+
+    <section class="modal-section">
+      <h3>Supabase 실시간 연결</h3>
+      <input id="supaUrl" type="url" class="wide-input" placeholder="https://xxxx.supabase.co" autocomplete="off" />
+      <input id="supaKey" type="password" class="wide-input" placeholder="anon public key" autocomplete="off" />
+      <div class="form-row">
+        <button class="soft-btn" type="button" id="btnSaveSupa">저장 후 새로고침</button>
+        <button class="ghost-btn" type="button" id="btnClearSupa">연결 해제</button>
+      </div>
+      <p class="hint">키가 비어 있으면 데모 모드로 동작합니다. anon key는 브라우저에 노출되는 공개 키이므로, Supabase 테이블 보안 설정(RLS)을 꼭 확인하세요. 안내는 README.md에 있어요.</p>
+    </section>
+
+    <section class="modal-section">
+      <h3>데모 데이터</h3>
+      <div class="form-row">
+        <button class="ghost-btn" type="button" id="btnResetDemo">데모 데이터 초기화</button>
+      </div>
+      <p class="hint">Supabase에 연결된 상태에서는 실제 데이터를 건드리지 않습니다.</p>
+    </section>
+
+    <p class="hint modal-foot">이 페이지는 잠금 화면으로 가려 두는 개인용 대시보드입니다. 민감한 개인정보(실명·주소·연락처·계좌)는 저장하지 않습니다.</p>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
